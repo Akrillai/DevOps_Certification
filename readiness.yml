@@ -1,0 +1,68 @@
+---
+- name: Builder preparation
+  hosts: builder
+  become: true
+
+  tasks:
+    - name: Install needed packages
+      apt:
+        name: "{{item}}"
+        state: present
+        update_cache: true
+      with_items:
+        - maven
+        - docker.io
+
+    - name: Ensure docker.service is running
+      service:
+        name: docker.service
+        state: started
+
+    - name: Ensuer user ubuntu in group docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
+
+    - name: Maven when cloned ok
+      shell:
+        cmd: chmod 777 /var/run/docker.sock
+
+    - name: pass src for build
+      synchronize:
+        mode: push
+        src: src
+        dest: .
+
+    - name: pass xml for build
+      synchronize:
+        mode: push
+        src: pom.xml
+        dest: .
+
+    - name: Maven when cloned ok
+      shell:
+        cmd: mvn package
+
+
+- name: Webserver preparation
+  hosts: webserver
+  become: true
+
+  tasks:
+    - name: Ensure docker.io package is present
+      apt:
+        name: docker.io
+        state: present
+        update_cache: true
+
+    - name: Ensure docker.service is running
+      service:
+        name: docker.service
+        state: started
+
+    - name: Ensuer user ubuntu in group docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
